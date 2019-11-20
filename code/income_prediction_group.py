@@ -12,9 +12,10 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error
 
 dataset_training = pd.read_csv('../data/tcd-ml-1920-group-income-train.csv', low_memory=False)
+dataset_predict = pd.read_csv('../data/tcd-ml-1920-group-income-test.csv', low_memory=False)
 
 numerical_features = ['Year of Record', 'Work Experience in Current Job [years]', 'Age',
-        'Size of City', 'Yearly Income in addition to Salary (e.g. Rental Income)']
+        'Size of City']
 categorical_features = ['Housing Situation', 'Satisfation with employer', 'Gender', 'Country',
         'Hair Color']
 constructed_categorical_features = ['Body Height [cm]', 'Crime Level in the City of Employement']
@@ -22,8 +23,7 @@ constructed_categorical_features = ['Body Height [cm]', 'Crime Level in the City
 for feature in constructed_categorical_features:
     dataset_training[feature] = pd.cut(dataset_training[feature], 3, labels=['Below','Average','Above'])
 
-string_mask = dataset_training['Work Experience in Current Job [years]'].apply(lambda x: isinstance(x, str))
-dataset_training = dataset_training[~string_mask]
+dataset_training = dataset_training[~dataset_training['Work Experience in Current Job [years]'].str.contains('#NUM!')]
 
 numerical_transformer = Pipeline(steps=[
     ('Imputer', SimpleImputer(strategy='median', verbose=1)),
@@ -47,12 +47,17 @@ regressor = Pipeline(steps=[
     ('XGBoost', xgb.XGBRegressor())],
     verbose=True)
 
-x_data = dataset_training.drop(['Instance', 'Total Yearly Income [EUR]'], axis=1)
+x_data = dataset_training.drop(['Instance', 'Yearly Income in addition to Salary (e.g. Rental Income)',
+    'Total Yearly Income [EUR]'], axis=1)
 y_data = dataset_training['Total Yearly Income [EUR]']
 
 x_train, x_test, y_train, y_real = train_test_split(x_data, y_data, test_size=0.3, random_state=0)
 
 model = regressor.fit(x_train, y_train)
 y_pred = model.predict(x_test)
+
+predictions.pd.DataFrame(data=regressor.predict(y_pred), columns='Total Yearly Income [EUR]')
+predictions.insert(0, 'Instance', range(1, len(df)))
+predictions.to_csv('../pred.csv')
 
 print('MAE: ', mean_absolute_error(y_real, y_pred))
