@@ -30,23 +30,25 @@ crime_bins = pd.IntervalIndex.from_tuples([(0, 33), (33, 133), (133, 200)])
 age_bins = pd.IntervalIndex.from_tuples([(0, 9), (10, 19), (20, 29), (30, 39), (40, 49), (50, 59), (60, 69), (70, 79), (80, 89), (90, 99), (100, 109), (110, 119), (120, 129)])
 
 # Apply bins to data
-dataset_training['Body Height [cm]'] = pd.cut(dataset_training['Body height [cm]'], height_bins, labels=['Below','Average','Above'])
-dataset_training['Crime Level in the City of Employement'] = pd.cut(dataset_training['Body Height [cm]'], crime_bins, labels=['Below', 'Average', 'Above'])
+dataset_training['Body Height [cm]'] = pd.cut(dataset_training['Body Height [cm]'], height_bins, labels=['Below','Average','Above'])
+dataset_training['Crime Level in the City of Employement'] = pd.cut(dataset_training['Crime Level in the City of Employement'], crime_bins, labels=['Below', 'Average', 'Above'])
 dataset_training['Age'] = pd.cut(dataset_training['Age'], age_bins, labels=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'])
 
-dataset_predict['Body Height [cm]'] = pd.cut(dataset_predict['Body height [cm]'], height_bins, labels=['Below','Average','Above'])
-dataset_predict['Crime Level in the City of Employement'] = pd.cut(dataset_predict['Body Height [cm]'], crime_bins, labels=['Below', 'Average', 'Above'])
+dataset_predict['Body Height [cm]'] = pd.cut(dataset_predict['Body Height [cm]'], height_bins, labels=['Below','Average','Above'])
+dataset_predict['Crime Level in the City of Employement'] = pd.cut(dataset_predict['Crime Level in the City of Employement'], crime_bins, labels=['Below', 'Average', 'Above'])
 dataset_predict['Age'] = pd.cut(dataset_predict['Age'], age_bins, labels=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'])
 
 # Remove some data that contains strings instead of floats (not so elegant)
 dataset_training = dataset_training[~dataset_training['Work Experience in Current Job [years]'].str.contains('#NUM!')]
+dataset_training['Yearly Income in addition to Salary (e.g. Rental Income)'].str.extract('EUR', expand=False).astype(float)
+dataset_predict['Yearly Income in addition to Salary (e.g. Rental Income)'].str.extract('EUR', expand=False).astype(float)
 
 # additional_income_training = dataset_training['Yearly Income in addition to Salary (e.g. Rental Income)'].to_numpy()
 # additional_income_predict = dataset_prediction['Yearly Income in addition to Salary (e.g. Rental Income)'].to_numpy()
 
 # Data pipelines, better to substitute with individual preprocessing steps perhaps
 numerical_transformer = Pipeline(steps=[
-    ('Imputer', SimpleImputer(strategy='mode', verbose=1)),
+    ('Imputer', SimpleImputer(strategy='median', verbose=1)),
     ('Scaler', StandardScaler())],
     verbose=True)
 
@@ -89,4 +91,4 @@ predictions = pd.DataFrame(y_pred)
 predictions.to_csv('../pred.csv')
 
 # Print MAE
-print('MAE: ', mean_absolute_error(y_test, y_real)
+print('MAE: ', mean_absolute_error(y_test, y_real))
