@@ -32,7 +32,7 @@ age_bins = pd.IntervalIndex.from_tuples([(0, 9), (10, 19), (20, 29), (30, 39), (
 # Apply bins to data
 dataset_training['Body Height [cm]'] = pd.cut(dataset_training['Body height [cm]'], height_bins, labels=['Below','Average','Above'])
 dataset_training['Crime Level in the City of Employement'] = pd.cut(dataset_training['Body Height [cm]'], crime_bins, labels=['Below', 'Average', 'Above'])
-dataset_training['Age' = pd.cut(dataset_training['Age'], age_bins, labels=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'])
+dataset_training['Age'] = pd.cut(dataset_training['Age'], age_bins, labels=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'])
 
 dataset_predict['Body Height [cm]'] = pd.cut(dataset_predict['Body height [cm]'], height_bins, labels=['Below','Average','Above'])
 dataset_predict['Crime Level in the City of Employement'] = pd.cut(dataset_predict['Body Height [cm]'], crime_bins, labels=['Below', 'Average', 'Above'])
