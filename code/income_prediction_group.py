@@ -19,7 +19,7 @@ dataset_predict = pd.read_csv('../data/tcd-ml-1920-group-income-test.csv', low_m
 
 # define which features are numerical, categorical or constructed
 numerical_features = ['Year of Record', 'Work Experience in Current Job [years]',
-        'Size of City', 'Yearly Income in addition to Salary (e.g. Rental Income)']
+        'Size of City']
 categorical_features = ['Housing Situation', 'Satisfation with employer', 'Gender', 'Country',
         'Hair Color']
 constructed_categorical_features = ['Body Height [cm]', 'Crime Level in the City of Employement', 'Age']
@@ -40,8 +40,8 @@ dataset_predict['Age'] = pd.cut(dataset_predict['Age'], age_bins, labels=['a', '
 
 # Remove some data that contains strings instead of floats (not so elegant)
 dataset_training = dataset_training[~dataset_training['Work Experience in Current Job [years]'].str.contains('#NUM!')]
-dataset_training['Yearly Income in addition to Salary (e.g. Rental Income)'].str.extract('EUR', expand=False).astype(float)
-dataset_predict['Yearly Income in addition to Salary (e.g. Rental Income)'].str.extract('EUR', expand=False).astype(float)
+dataset_training['Yearly Income in addition to Salary (e.g. Rental Income)'].str.rstrip('%')
+dataset_predict['Yearly Income in addition to Salary (e.g. Rental Income)'].str.rstrip('%')
 
 # additional_income_training = dataset_training['Yearly Income in addition to Salary (e.g. Rental Income)'].to_numpy()
 # additional_income_predict = dataset_prediction['Yearly Income in addition to Salary (e.g. Rental Income)'].to_numpy()
@@ -73,10 +73,10 @@ regressor = Pipeline(steps=[
     verbose=True)
 
 # Create features and target vectors
-x_data = dataset_training.drop(['Instance', 'Total Yearly Income [EUR]'], axis=1)
+x_data = dataset_training.drop(['Instance', 'Yearly Income in addition to Salary (e.g. Rental Income)','Total Yearly Income [EUR]'], axis=1)
 y_data = dataset_training['Total Yearly Income [EUR]']
 
-x_pred = dataset_predict.drop(['Instance', 'Total Yearly Income [EUR]'], axis=1)
+x_pred = dataset_predict.drop(['Instance', 'Yearly Income in addition to Salary (e.g. Rental Income)','Total Yearly Income [EUR]'], axis=1)
 
 # validation/train split
 x_train, x_test, y_train, y_real = train_test_split(x_data, y_data, test_size=0.3, random_state=0)
