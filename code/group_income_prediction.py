@@ -1,13 +1,17 @@
+# Team46 Group Competition Submission
+# Local MAE Approx 8550-8600
+
 import numpy as np 
 import pandas as pd 
-import matplotlib.pyplot as plt 
 import category_encoders as ce 
 
 from collections import Counter 
 
 from sklearn.preprocessing import LabelEncoder 
 from sklearn.model_selection import train_test_split 
-from sklearn import neural_network as nn 
+from sklearn.metrics import mean_absolute_error
+
+import xgboost as xgb
 
 # reading data from csv 
 ori_data = pd.read_csv('../data/tcd-ml-1920-group-income-train.csv', low_memory=False) 
@@ -47,17 +51,6 @@ ori_data_1 = ori_data.drop(ori_data[condition1].index)
 
 
 def subset_by_iqr(df, column, whisker_width=1.1): 
-    """Remove outliers from a dataframe by column, including optional 
-       whiskers, removing rows for which the column value are 
-       less than Q1-1.5IQR or greater than Q3+1.5IQR. 
-    Args: 
-        df (`:obj:pd.DataFrame`): A pandas dataframe to subset 
-        column (str): Name of the column to calculate the subset from. 
-        whisker_width (float): Optional, loosen the IQR filter by a 
-                               factor of `whisker_width` * IQR. 
-    Returns: 
-        (`:obj:pd.DataFrame`): Filtered dataframe 
-    """ 
     # Calculate Q1, Q2 and IQR 
     q1 = df[column].quantile(0.25)                  
     q3 = df[column].quantile(0.75) 
@@ -66,10 +59,6 @@ def subset_by_iqr(df, column, whisker_width=1.1):
     filter = (df[column] >= q1 - whisker_width*iqr) & (df[column] <= q3 + whisker_width*iqr) 
     return df.loc[filter] 
 
-# if you want to remove more outliers then uncomment the below code 
-#ori_data_1 = subset_by_iqr(ori_data, 'Total Yearly Income [EUR]', 4.0) 
-
-        
 #concat test and train dataset 
 data = pd.concat([ori_data_1,test_data],ignore_index=True) 
 data.isnull().sum() 
@@ -98,6 +87,7 @@ fill_col_dict = {
     'UNI': 'Bachelor', 
     'HAIR': 'Black', 
     } 
+
 for col in fill_col_dict.keys(): 
     data[col] = data[col].fillna(fill_col_dict[col]) 
      
@@ -133,7 +123,6 @@ cons = ['CRIME', 'CITY', 'BODY', 'ADD']
 data = create_cat_con(data,cats,cons) 
 
 #deleting irrelevant features 
-
 del_col = set(['GLASS', 'GLASS_BODY', 'WORK_CITY', 'GLASS_FE_FULL', 'HAIR_BODY', 
                'HAIR_FE_FULL', 'UNI_BODY', 'SEX_BODY', 'SATIS_BODY', 'HAIR']) 
 delete = set(del_col) 
@@ -162,7 +151,9 @@ data = data.join(one_hot)
 one_hot = pd.get_dummies(data['CRIME']) 
 data = data.drop('CRIME',axis = 1) 
 data = data.join(one_hot) 
-     
+
+data['WORK'] = pd.to_numeric(data['WORK'],errors='coerce')
+
 #Splitting back into train and test (needs to be done earlier to 
 #Target encoding but before label encoding(in case you use label encoding 
 #thats why between both these codes)) 
@@ -186,34 +177,25 @@ del X_test['IsTrain']
 
 #splitting train set into training and validating set 
 x_train, x_val, y_train, y_val = train_test_split(X_train,Y_train,test_size=0.2,random_state=1234) 
-
-# Create Neural Network, use function as may use multiple instances
-def setupNN(): 
-    return nn.MLPRegressor( 
-            hidden_layer_sizes = (100, 100, 100), 
-            max_iter = 100, 
-            tol = 0.00001, 
-            n_iter_no_change = 10, 
-            early_stopping = True, 
-            learning_rate = 'adaptive', 
-            learning_rate_init = 0.0005, 
-            )
-
-neuralNet = setupNN() 
+y_train = np.sqrt(y_train)
 
 print("Starting Training") 
-neuralNet.fit(x_train, y_train) 
-print("Iterations: ", neuralNet.n_iter_) 
+model = xgb.XGBRegressor(verbosity=2, max_depth=12, gamma=0.5,
+        eta = 0.1, subsample=0.75, colsample_bytree=0.75, 
+        tree_method='gpu_hist', predictor='gpu_predictor', 
+        num_parallel_tree=8)
+model.fit(x_train,y_train)
+print("Training Complete")
 
-#Calculating both RMSE and MAE 
-from sklearn.metrics import mean_absolute_error 
-
-y_val_test = neuralNet.predict(x_val) 
+#Calculating MAE and write to file 
+y_val_test = model.predict(x_val)
+y_val_test = np.square(y_val_test)
 val_mae = mean_absolute_error(y_val, y_val_test) 
 
 print("Validation MAE :", val_mae) 
 
-y_test = neuralNet.predict(X_test) 
+y_test = model.predict(X_test)
+y_test = np.square(y_test)
 
 sub_df = pd.DataFrame({'Instance':X_test_id, 
                        'Total Yearly Income [EUR]':y_test}) 
